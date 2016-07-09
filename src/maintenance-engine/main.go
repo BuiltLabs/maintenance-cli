@@ -2,73 +2,128 @@ package main
 
 import (
 	"flag"
-	"errors"
-	"fmt"
 	"os"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"log"
+	"time"
+	"fmt"
 )
+type Maintenance struct {
+	ready bool
 
-var enableMaintenance bool
-var disableMaintenance bool
+	enabled bool
+	timestamp time.Time
+}
+
+var maintenance Maintenance
+
 var fileTarget string
-var engine string
-var key string
-var table string
-var dataColumn string
-var keyColumn string
+var storageEngine string
+
+var tableName string
+var primaryPartitionKeyName string
+var primaryPartitionKey string
 
 func init() {
-	flag.BoolVar(&enableMaintenance, "enable", false, "disregard aws, turns on maintenance")
-	flag.BoolVar(&disableMaintenance, "disable", false, "disregard aws, turns off maintenance")
-	flag.StringVar(&fileTarget, "fileTarget", "./maintenance.enable", "the file which is to be added/removed")
-	flag.StringVar(&engine, "engine", "dynamodb", "The data store model used. DynamoDB is the only option right now.")
-	flag.StringVar(&key, "key", "dev", "Key Value of the data record to be referenced")
-	flag.StringVar(&table, "table", "maintenanceFlags", "The table which our key/data is stored in")
-	flag.StringVar(&dataColumn, "dataColumn", "data", "The column which contains the data object")
-	flag.StringVar(&keyColumn, "keyColumn", "key", "The column which contains our key indeces")
+	flag.StringVar(&fileTarget, "target", "./maintenance.enable", "the file which is to be added/removed")
+	flag.StringVar(&storageEngine, "engine", "dynamodb", "The data store model used. DynamoDB is the only option right now.")
+	flag.StringVar(&tableName, "tableName", "maintenanceFlags", "The table which our key/data is stored in")
+	flag.StringVar(&primaryPartitionKey, "key", "ops", "Primary Partition Key Value")
+	flag.StringVar(&primaryPartitionKeyName, "keyName", "environment", "Primary Partion Key Name")
 }
 
 func main() {
+	var output string
+
 	flag.Parse()
+
+	maintenance.timestamp = time.Now()
 
 	if err := checkFlags(); err != nil {
 		panic(err)
 	}
 
-	if true == enableMaintenance {
-		enable()
+	if maintenance.ready {
+		if maintenance.enabled {
+			if err := enable(); err != nil {
+				panic(err)
+			}
+
+			output = "maintenance enabled"
+		} else {
+			if err := disable(); err != nil {
+				panic(err)
+			}
+
+			output = "maintenance disabled"
+		}
+	} else {
+		output = "unknown error"
 	}
 
-	if true == disableMaintenance {
-		disable()
-	}
+	fmt.Printf("[%s] - %s", maintenance.timestamp.Format(time.RFC3339), output)
 }
 
-func checkFlags() (error) {
-	if true == enableMaintenance && true == disableMaintenance {
-		return errors.New("One does not simply enable and disable maintenance at the same time.")
+func checkFlags() (err error) {
+	switch storageEngine {
+	case "dynamodb":
+		item, err := checkDynamoDB()
+
+		if (err == nil && item.Item["enabled"] != nil) {
+			maintenance.ready   = true
+			maintenance.enabled = *item.Item["enabled"].BOOL
+		}
+
+		break;
+	case "local":
+		break;
 	}
 
-	return nil;
+	return;
 }
 
-func enable() {
-	fmt.Println("Enabling maintenance mode...")
+func checkDynamoDB() (*dynamodb.GetItemOutput, error) {
+	svc := dynamodb.New(session.New(&aws.Config{
+		Region: aws.String("us-east-1"),
+	}))
 
+	params := &dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			primaryPartitionKeyName: {
+				S: aws.String(primaryPartitionKey),
+			},
+		},
+		TableName: aws.String(tableName),
+	}
+
+	resp, err := svc.GetItem(params);
+
+	return resp, err
+}
+
+func enable() (err error) {
 	file, err := os.Create(fileTarget);
 
 	if err != nil {
-		panic(err)
+		log.Printf("File creation failed (reason: %s)", err)
+		return
 	}
 
 	if err := file.Close(); err != nil {
-		panic(err)
+		log.Printf("File close failed (reason: %s)", err)
 	}
+
+	return
 }
 
-func disable() {
-	fmt.Println("Disabling maintenance mode...")
-
-	if err := os.Remove(fileTarget); err != nil {
-		panic(err)
+func disable() (err error) {
+	if _, err := os.Stat(fileTarget); err != nil {
+		return nil
 	}
+
+	err = os.Remove(fileTarget)
+
+	return
 }
