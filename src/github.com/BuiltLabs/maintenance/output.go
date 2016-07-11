@@ -2,13 +2,13 @@ package maintenance
 
 import (
 	"fmt"
-	"time"
 	"os"
+	"time"
 )
 
 type Output struct {
-	Verb      string
-	Noun      string
+	Verb string
+	Noun string
 
 	timestamp time.Time
 }

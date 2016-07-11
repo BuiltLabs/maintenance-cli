@@ -1,11 +1,11 @@
 package maintenance
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
-	"errors"
 )
 
 func (m *Maintenance) PollStatus() {
@@ -64,7 +64,7 @@ func (m *Maintenance) checkFlags() (err error) {
 	return nil
 }
 
-func (m *Maintenance) createFile() (error) {
+func (m *Maintenance) createFile() error {
 	if err := ioutil.WriteFile(m.FileTarget, []byte(m.MetaData), 0644); err != nil {
 		return errors.New(fmt.Sprintf("File creation failed (reason: %s)", err))
 	}
@@ -72,7 +72,7 @@ func (m *Maintenance) createFile() (error) {
 	return nil
 }
 
-func (m *Maintenance) deleteFile() (error) {
+func (m *Maintenance) deleteFile() error {
 	if _, err := os.Stat(m.FileTarget); err != nil {
 		// file doesn't exist, nothing to delete
 		return nil
