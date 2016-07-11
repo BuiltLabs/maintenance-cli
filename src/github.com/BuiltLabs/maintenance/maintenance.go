@@ -1,21 +1,21 @@
 package maintenance
 
 import (
+	"io/ioutil"
 	"os"
 	"time"
-	"io/ioutil"
 )
 
 type Maintenance struct {
-	ready       bool
-	enabled     bool
-	timestamp   time.Time
+	ready     bool
+	enabled   bool
+	timestamp time.Time
 
-	FileTarget  string
-	TableName   string
-	Key         string
-	KeyName     string
-	MetaData    string
+	FileTarget string
+	TableName  string
+	Key        string
+	KeyName    string
+	MetaData   string
 }
 
 func NewMaintenance() *Maintenance {

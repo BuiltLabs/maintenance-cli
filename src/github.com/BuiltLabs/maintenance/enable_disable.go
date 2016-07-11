@@ -10,7 +10,6 @@ func (m *Maintenance) EnableMaintenance() {
 	m.output("action:set ** maintenance enabled")
 }
 
-
 func (m *Maintenance) DisableMaintenance() {
 	m.checkTable()
 

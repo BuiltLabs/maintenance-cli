@@ -2,9 +2,10 @@ package maintenance
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
-	"fmt"
 )
 
 func (m *Maintenance) PollStatus() {
@@ -26,13 +27,13 @@ func (m *Maintenance) checkStatus() {
 
 	if m.ready {
 		if m.enabled {
-			if err := m.enable(); err != nil {
+			if err := m.createFile(); err != nil {
 				panic(err)
 			}
 
 			buffer.WriteString("maintenance enabled")
 		} else {
-			if err := m.disable(); err != nil {
+			if err := m.deleteFile(); err != nil {
 				panic(err)
 			}
 
@@ -48,32 +49,34 @@ func (m *Maintenance) checkStatus() {
 func (m *Maintenance) checkFlags() (err error) {
 	item, err := m.lookup()
 
-	if err == nil && item.Item["enabled"] != nil {
-		m.ready     = true
-		m.enabled   = *item.Item["enabled"].BOOL
+	if err == nil {
+		if item.Item["enabled"] != nil {
+			m.ready = true
+			m.enabled = *item.Item["enabled"].BOOL
+		}
+
+		if item.Item["meta"] != nil {
+			m.MetaData = *item.Item["meta"].S
+		} else {
+			m.MetaData = ""
+		}
 	}
 
 	return err
 }
 
-
-func (m Maintenance) enable() (err error) {
-	file, err := os.Create(m.FileTarget)
+func (m *Maintenance) createFile() (err error) {
+	err = ioutil.WriteFile(m.FileTarget, []byte(m.MetaData), 0644)
 
 	if err != nil {
 		m.output(fmt.Sprintf("File creation failed (reason: %s)", err))
 		return err
 	}
 
-	if err := file.Close(); err != nil {
-		m.output(fmt.Sprintf("File close failed (reason: %s)", err))
-		return err
-	}
-
 	return err
 }
 
-func (m Maintenance) disable() (err error) {
+func (m *Maintenance) deleteFile() (err error) {
 	if _, err := os.Stat(m.FileTarget); err != nil {
 		return nil
 	}

@@ -53,8 +53,8 @@ func (m *Maintenance) createTable() (err error) {
 			},
 		},
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(5),
-			WriteCapacityUnits: aws.Int64(5),
+			ReadCapacityUnits:  aws.Int64(7),
+			WriteCapacityUnits: aws.Int64(1),
 		},
 		TableName: aws.String(m.TableName),
 	}
@@ -67,7 +67,7 @@ func (m *Maintenance) createTable() (err error) {
 func (m *Maintenance) waitTable() (err error) {
 	svc := dynamodb.New(session.New())
 
-	params := &dynamodb.DescribeTableInput {
+	params := &dynamodb.DescribeTableInput{
 		TableName: aws.String(m.TableName),
 	}
 
@@ -81,18 +81,18 @@ func (m *Maintenance) enableRecord() (err error) {
 
 	items := map[string]*dynamodb.AttributeValue{}
 
-	items[m.KeyName]    = &dynamodb.AttributeValue{ S: aws.String(m.Key) }
-	items["created_at"] = &dynamodb.AttributeValue{ N: aws.String(strconv.FormatInt(m.timestamp.Unix(), 10)) }
-	items["disable_at"] = &dynamodb.AttributeValue{ N: aws.String("0") } // not implemented
-	items["enable_at"]  = &dynamodb.AttributeValue{ N: aws.String("0") } // not implemented
-	items["enabled"]    = &dynamodb.AttributeValue{ BOOL:  aws.Bool(true) }
+	items[m.KeyName] = &dynamodb.AttributeValue{S: aws.String(m.Key)}
+	items["updated_at"] = &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(m.timestamp.Unix(), 10))}
+	items["disable_at"] = &dynamodb.AttributeValue{N: aws.String("0")} // not implemented
+	items["enable_at"] = &dynamodb.AttributeValue{N: aws.String("0")}  // not implemented
+	items["enabled"] = &dynamodb.AttributeValue{BOOL: aws.Bool(true)}
 
-	if (m.MetaData != "") {
-		items["meta"] = &dynamodb.AttributeValue{ S: aws.String(m.MetaData) }
+	if m.MetaData != "" {
+		items["meta"] = &dynamodb.AttributeValue{S: aws.String(m.MetaData)}
 	}
 
 	params := &dynamodb.PutItemInput{
-		Item: items,
+		Item:      items,
 		TableName: aws.String(m.TableName),
 	}
 
@@ -101,26 +101,25 @@ func (m *Maintenance) enableRecord() (err error) {
 	return err
 }
 
-
 func (m *Maintenance) disableRecord() (err error) {
 	svc := dynamodb.New(session.New())
 
 	params := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			m.KeyName: {
-				S:  aws.String(m.Key),
+				S: aws.String(m.Key),
 			},
-			"created_at": {
-				N:  aws.String(strconv.FormatInt(m.timestamp.Unix(), 10)),
+			"updated_at": {
+				N: aws.String(strconv.FormatInt(m.timestamp.Unix(), 10)),
 			},
 			"disable_at": {
-				N:  aws.String("0"), // not implemented
+				N: aws.String("0"), // not implemented
 			},
 			"enable_at": {
-				N:  aws.String("0"), // not implemented
+				N: aws.String("0"), // not implemented
 			},
 			"enabled": {
-				BOOL:  aws.Bool(false),
+				BOOL: aws.Bool(false),
 			},
 		},
 		TableName: aws.String(m.TableName),
