@@ -3,8 +3,25 @@ package maintenance
 import (
 	"fmt"
 	"time"
+	"os"
 )
 
-func (m *Maintenance) output(output string) {
-	fmt.Printf("[%s] %s\n", m.timestamp.Format(time.RFC3339), output)
+type Output struct {
+	Verb      string
+	Noun      string
+
+	timestamp time.Time
+}
+
+func (o *Output) output(output string) {
+	fmt.Printf("[%s] %s:%s ** %s\n", o.timestamp, o.Verb, o.Noun, output)
+}
+
+func (o *Output) outputError(err error, fatal bool) {
+	o.Verb = "error"
+	o.output(fmt.Sprint(err))
+
+	if fatal {
+		os.Exit(1)
+	}
 }

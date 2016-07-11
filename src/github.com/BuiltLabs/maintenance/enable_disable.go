@@ -1,34 +1,44 @@
 package maintenance
 
-func (m *Maintenance) EnableMaintenance() {
-	m.checkTable()
+import "fmt"
 
-	if err := m.enableRecord(); err != nil {
-		panic(err)
+func (m *Maintenance) EnableMaintenance() {
+	if err := m.checkTable(); err != nil {
+		m.Output.outputError(err, true)
 	}
 
-	m.output("action:set ** maintenance enabled")
+	if err := m.enableRecord(); err != nil {
+		m.Output.outputError(err, true)
+	}
+
+	m.Output.output("maintenance enabled")
 }
 
 func (m *Maintenance) DisableMaintenance() {
-	m.checkTable()
+	if err := m.checkTable(); err != nil {
+		m.Output.outputError(err, true)
+	}
 
 	if err := m.disableRecord(); err != nil {
-		panic(err)
+		m.Output.outputError(err, true)
 	}
 
-	m.output("action:set ** maintenance disabled")
+	m.Output.output("maintenance disabled")
 }
 
-func (m *Maintenance) checkTable() {
+func (m *Maintenance) checkTable() (err error) {
 	// checks if table exists, if not, creates it
 	if err := m.tableExists(); err != nil {
+		m.Output.output(fmt.Sprintf("creating table [%s]", m.TableName))
 		if err := m.createTable(); err != nil {
-			panic(err)
+			return err
 		}
 
+		m.Output.output(fmt.Sprintf("waiting for table creation [%s]", m.TableName))
 		if err := m.waitTable(); err != nil {
-			panic(err)
+			return err
 		}
 	}
+
+	return nil
 }

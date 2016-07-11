@@ -1,49 +1,44 @@
 package maintenance
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
+	"errors"
 )
 
 func (m *Maintenance) PollStatus() {
+
 	for {
 		m.checkStatus()
 		time.Sleep(time.Second * 5)
 	}
 }
 
-func (m *Maintenance) checkStatus() {
-	var buffer bytes.Buffer
-	buffer.WriteString("action:poll ** ")
-
+func (m *Maintenance) checkStatus() (err error) {
 	m.timestamp = time.Now()
-
-	if err := m.checkFlags(); err != nil {
-		panic(err)
-	}
+	err = m.checkFlags()
 
 	if m.ready {
 		if m.enabled {
-			if err := m.createFile(); err != nil {
-				panic(err)
-			}
+			if err = m.createFile(); err == nil {
+				m.Output.output("maintenance enabled")
 
-			buffer.WriteString("maintenance enabled")
+				return
+			}
 		} else {
-			if err := m.deleteFile(); err != nil {
-				panic(err)
-			}
+			if err = m.deleteFile(); err == nil {
+				m.Output.output("maintenance disabled")
 
-			buffer.WriteString("maintenance disabled")
+				return
+			}
 		}
-	} else {
-		buffer.WriteString("unknown error")
 	}
 
-	m.output(buffer.String())
+	m.Output.outputError(err, false)
+
+	return
 }
 
 func (m *Maintenance) checkFlags() (err error) {
@@ -53,6 +48,8 @@ func (m *Maintenance) checkFlags() (err error) {
 		if item.Item["enabled"] != nil {
 			m.ready = true
 			m.enabled = *item.Item["enabled"].BOOL
+		} else {
+			return errors.New(fmt.Sprintf("Record lookup failed (reason: could not find [%s: %s])", m.KeyName, m.Key))
 		}
 
 		if item.Item["meta"] != nil {
@@ -60,28 +57,30 @@ func (m *Maintenance) checkFlags() (err error) {
 		} else {
 			m.MetaData = ""
 		}
+	} else {
+		return errors.New(fmt.Sprintf("Record lookup failed (reason: %s)", err))
 	}
 
-	return err
+	return nil
 }
 
-func (m *Maintenance) createFile() (err error) {
-	err = ioutil.WriteFile(m.FileTarget, []byte(m.MetaData), 0644)
-
-	if err != nil {
-		m.output(fmt.Sprintf("File creation failed (reason: %s)", err))
-		return err
+func (m *Maintenance) createFile() (error) {
+	if err := ioutil.WriteFile(m.FileTarget, []byte(m.MetaData), 0644); err != nil {
+		return errors.New(fmt.Sprintf("File creation failed (reason: %s)", err))
 	}
 
-	return err
+	return nil
 }
 
-func (m *Maintenance) deleteFile() (err error) {
+func (m *Maintenance) deleteFile() (error) {
 	if _, err := os.Stat(m.FileTarget); err != nil {
+		// file doesn't exist, nothing to delete
 		return nil
 	}
 
-	err = os.Remove(m.FileTarget)
+	if err := os.Remove(m.FileTarget); err != nil {
+		return errors.New(fmt.Sprintf("File deletion failed (reason: %s", err))
+	}
 
-	return err
+	return nil
 }

@@ -41,6 +41,8 @@ func main() {
 				m.TableName = c.String("table")
 				m.Key = c.String("key")
 				m.KeyName = c.String("keyName")
+				m.Output.Verb = "action"
+				m.Output.Noun = "poll"
 
 				m.PollStatus()
 
@@ -75,6 +77,8 @@ func main() {
 				m.TableName = c.String("table")
 				m.KeyName = c.String("keyName")
 				m.Key = c.String("key")
+				m.Output.Verb = "action"
+				m.Output.Noun = "enable"
 
 				if metaFile := c.String("metaFile"); metaFile != "" {
 					m.ImportMetaData(metaFile)
@@ -108,6 +112,8 @@ func main() {
 				m.TableName = c.String("table")
 				m.KeyName = c.String("keyname")
 				m.Key = c.String("key")
+				m.Output.Verb = "action"
+				m.Output.Noun = "disable"
 
 				m.DisableMaintenance()
 				return nil

@@ -10,6 +10,7 @@ type Maintenance struct {
 	ready     bool
 	enabled   bool
 	timestamp time.Time
+	Output    Output
 
 	FileTarget string
 	TableName  string
@@ -19,9 +20,18 @@ type Maintenance struct {
 }
 
 func NewMaintenance() *Maintenance {
-	return &Maintenance{
-		timestamp: time.Now(),
+	ts := time.Now()
+
+	o := &Output{
+		timestamp: ts,
 	}
+
+	m := &Maintenance{
+		timestamp: ts,
+		Output:    *o,
+	}
+
+	return m
 }
 
 func (m *Maintenance) ImportMetaData(filePath string) {
