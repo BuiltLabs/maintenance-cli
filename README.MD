@@ -80,6 +80,7 @@ $ AWS_ACCESS_KEY_ID=... ./maintenance-cli enable --table maintenance-table --key
 [2016-07-11 13:45:45.59624503 -0500 CDT] action:enable ** waiting for table creation [maintenance-table]
 [2016-07-11 13:45:45.59624503 -0500 CDT] action:enable ** maintenance enabled
 ```
+
 ---
 > Synopsis: Using the maintenance-cli tool to poll for maintenance mode (using the paremeters noted above), writing a file named /application/maintenance.json if enabled. NOTE: This program will poll every 5 seconds until terminated.
 ```
@@ -87,7 +88,6 @@ $ AWS_ACCESS_KEY_ID=... ./maintenance-cli poll --file /app/maintenance.json --ta
 [2016-07-11 14:11:22.118842334 -0500 CDT] action:poll ** maintenance enabled
 [2016-07-11 14:11:22.118842334 -0500 CDT] action:poll ** maintenance enabled
 ...
-
 $ ls -al /app/maintenance.json
 -rw-r--r--  1 foo  wheel  0 Jul 11 15:16 /app/maintenance.json
 ```
